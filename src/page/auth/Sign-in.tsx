@@ -58,6 +58,7 @@ const SignIn = () => {
     mutate(values, {
       onSuccess: (data) => {
         const user = data.user;
+        console.log("====>", user);
         const decodeUrl = returnUrl ? decodeURIComponent(returnUrl) : null;
         toast({
           title: "Success",
