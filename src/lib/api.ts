@@ -19,7 +19,10 @@ export const registerMutationFn = async (data: registerType) => {
   return response.data;
 };
 
-export const logoutMutationFn = async () => {};
+export const logoutMutationFn = async () => {
+  const response = await API.post("/auth/logout");
+  return response.data;
+};
 
 export const getCurrentUserQueryFn =
   async (): Promise<CurrentUserResponseType> => {

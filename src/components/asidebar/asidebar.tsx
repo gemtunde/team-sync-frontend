@@ -30,6 +30,8 @@ import { NavMain } from "./nav-main";
 import { NavProjects } from "./nav-projects";
 import { Separator } from "../ui/separator";
 import useWorkspaceId from "@/hooks/use-workspace-id";
+import { useAuthContext } from "@/context/auth-provider";
+import { AvatarImage } from "@radix-ui/react-avatar";
 
 const Asidebar = () => {
   const { open } = useSidebar();
@@ -37,7 +39,8 @@ const Asidebar = () => {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  const isLoading = false;
+  //const isLoading = false;
+  const { user, isLoading } = useAuthContext();
 
   return (
     <>
@@ -82,16 +85,21 @@ const Asidebar = () => {
                       className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                     >
                       <Avatar className="h-8 w-8 rounded-full">
+                        <AvatarImage src={user?.profilePicture || ""} />
                         <AvatarFallback className="rounded-full border border-gray-500">
-                          CN
+                          {user?.name
+                            ?.split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase() || "NA"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="grid flex-1 text-left text-sm leading-tight">
                         <span className="truncate font-semibold">
-                          Chile Brown
+                          {user?.name || "John Doe"}
                         </span>
                         <span className="truncate text-xs">
-                          example@gmail.com
+                          {user?.email || "NA"}
                         </span>
                       </div>
                       <EllipsisIcon className="ml-auto size-4" />

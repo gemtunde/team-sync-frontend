@@ -1,9 +1,16 @@
 import { createContext, useContext, useEffect } from "react";
-import useWorkspaceId from "@/hooks/use-workspace-id";
+// import useWorkspaceId from "@/hooks/use-workspace-id";
+import useAuth from "@/hooks/api/use-auth";
+import { UserType } from "@/types/api.type";
 
 // Define the context shape
 type AuthContextType = {
-  workspaceId: string;
+  user?: UserType;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  error: any;
+  isLoading: boolean;
+  isFetching: boolean;
+  refetchAuth: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -11,15 +18,30 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  //fetch user
+  const {
+    data: authData,
+    error: authError,
+    isLoading: authLoading,
+    isFetching: authFetching,
+    refetch: refetchAuth,
+  } = useAuth();
+
+  const user = authData?.user;
   //const navigate = useNavigate();
-  const workspaceId = useWorkspaceId();
+  //const workspaceId = useWorkspaceId();
 
   useEffect(() => {});
 
   return (
     <AuthContext.Provider
       value={{
-        workspaceId,
+        //workspaceId,
+        user,
+        error: authError,
+        isLoading: authLoading,
+        isFetching: authFetching,
+        refetchAuth,
       }}
     >
       {children}
