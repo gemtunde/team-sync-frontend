@@ -4,6 +4,7 @@ import {
   CreateWorkspaceResponseType,
   CreateWorkspaceType,
   CurrentUserResponseType,
+  EditWorkspaceType,
   LoginResponseType,
   loginType,
   registerType,
@@ -54,7 +55,13 @@ export const createWorkspaceMutationFn = async (
   return response.data;
 };
 
-export const editWorkspaceMutationFn = async () => {};
+export const editWorkspaceMutationFn = async ({
+  workspaceId,
+  data,
+}: EditWorkspaceType) => {
+  const response = await API.put(`/workspace/update/${workspaceId}`, data);
+  return response.data;
+};
 
 export const getWorkspaceAnalyticsQueryFn = async () => {};
 
