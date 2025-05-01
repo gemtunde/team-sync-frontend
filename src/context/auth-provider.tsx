@@ -1,16 +1,21 @@
 import { createContext, useContext, useEffect } from "react";
 // import useWorkspaceId from "@/hooks/use-workspace-id";
 import useAuth from "@/hooks/api/use-auth";
-import { UserType } from "@/types/api.type";
+import { UserType, WorkspaceType } from "@/types/api.type";
+import useGetWorkspaceQuery from "@/hooks/api/use-get-workspace";
+import useWorkspaceId from "@/hooks/use-workspace-id";
 
 // Define the context shape
 type AuthContextType = {
   user?: UserType;
+  workspace?: WorkspaceType;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   error: any;
   isLoading: boolean;
   isFetching: boolean;
   refetchAuth: () => void;
+  workspaceLoading: boolean;
+  refetchWorkspace: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,6 +23,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const workspaceId = useWorkspaceId();
   //fetch user
   const {
     data: authData,
@@ -27,9 +33,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     refetch: refetchAuth,
   } = useAuth();
 
+  //fetch WorkspaceById
   const user = authData?.user;
-  //const navigate = useNavigate();
-  //const workspaceId = useWorkspaceId();
+
+  const {
+    data: workspaceData,
+    isLoading: workspaceLoading,
+    error: workspaceError,
+    refetch: refetchWorkspace,
+  } = useGetWorkspaceQuery(workspaceId);
+
+  const workspace = workspaceData?.workspace;
 
   useEffect(() => {});
 
@@ -38,10 +52,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         //workspaceId,
         user,
-        error: authError,
+        error: authError || workspaceError,
         isLoading: authLoading,
         isFetching: authFetching,
         refetchAuth,
+        workspace,
+        workspaceLoading,
+        refetchWorkspace,
       }}
     >
       {children}
