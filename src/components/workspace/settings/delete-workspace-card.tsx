@@ -1,13 +1,54 @@
 import { ConfirmDialog } from "@/components/resuable/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { useAuthContext } from "@/context/auth-provider";
 import useConfirmDialog from "@/hooks/use-confirm-dialog";
+import { toast } from "@/hooks/use-toast";
+import useWorkspaceId from "@/hooks/use-workspace-id";
+import { deleteWorkspaceMutationFn } from "@/lib/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 const DeleteWorkspaceCard = () => {
   const { open, onOpenDialog, onCloseDialog } = useConfirmDialog();
 
-  const isPending = false;
+  //const isPending = false;
+  const { workspace } = useAuthContext();
+  const workspaceId = useWorkspaceId();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const handleConfirm = () => {};
+  const { mutate, isPending } = useMutation({
+    mutationFn: deleteWorkspaceMutationFn,
+  });
+
+  const handleConfirm = () => {
+    if (isPending) return;
+    mutate(workspaceId, {
+      onSuccess: (data) => {
+        toast({
+          title: "Workspace deleted",
+          description: data?.message,
+          variant: "success",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["userWorkspaces"],
+        });
+
+        navigate(`/workspace/${data?.currentWorkspace}`);
+        setTimeout(() => {
+          onCloseDialog();
+        }, 200);
+      },
+      onError: (error) => {
+        toast({
+          title: "Error",
+          description: error?.message,
+          variant: "destructive",
+        });
+        onCloseDialog();
+      },
+    });
+  };
   return (
     <>
       <div className="w-full">
@@ -44,8 +85,8 @@ const DeleteWorkspaceCard = () => {
         isLoading={isPending}
         onClose={onCloseDialog}
         onConfirm={handleConfirm}
-        title={`Delete  Test co Workspace`}
-        description={`Are you sure you want to delete? This action cannot be undone.`}
+        title={`Delete  ${workspace?.name}`}
+        description={`Are you sure you want to delete ${workspace?.name}? This action cannot be undone.`}
         confirmText="Delete"
         cancelText="Cancel"
       />
