@@ -5,6 +5,8 @@ import { UserType, WorkspaceType } from "@/types/api.type";
 import useGetWorkspaceQuery from "@/hooks/api/use-get-workspace";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import { useNavigate } from "react-router-dom";
+import usePermissions from "@/hooks/use-permissions";
+import { PermissionType } from "@/constant";
 
 // Define the context shape
 type AuthContextType = {
@@ -17,6 +19,7 @@ type AuthContextType = {
   refetchAuth: () => void;
   workspaceLoading: boolean;
   refetchWorkspace: () => void;
+  hasPermission: (permission: PermissionType) => boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,6 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [navigate, workspaceError]);
 
+  const permissions = usePermissions(user, workspace);
+  const hasPermission = (permission: PermissionType): boolean => {
+    return permissions.includes(permission);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -67,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         workspace,
         workspaceLoading,
         refetchWorkspace,
+        hasPermission,
       }}
     >
       {children}
