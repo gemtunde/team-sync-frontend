@@ -85,7 +85,15 @@ export const changeWorkspaceMemberRoleMutationFn = async () => {};
 
 //*******MEMBER ****************
 
-export const invitedUserJoinWorkspaceMutationFn = async () => {};
+export const invitedUserJoinWorkspaceMutationFn = async (
+  inviteCode: string
+): Promise<{
+  message: string;
+  workspaceId: string;
+}> => {
+  const response = await API.post(`/member/workspace/${inviteCode}/join`);
+  return response.data;
+};
 
 //********* */
 //********* PROJECTS
