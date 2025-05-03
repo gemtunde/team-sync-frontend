@@ -13,11 +13,13 @@ const usePermissions = (
       const member = workspace.members.find(
         (member) => member.userId === user._id
       );
+
       if (member) {
-        setPermissions(member.role.permissions || []);
+        setPermissions(member.role.permission || []);
       }
     }
   }, [user, workspace]);
+
   return useMemo(() => permissions, [permissions]);
 };
 

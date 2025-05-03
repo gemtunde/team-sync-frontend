@@ -33,6 +33,7 @@ const AllMembers = () => {
 
   const members = data?.members || [];
   const roles = data?.roles || [];
+
   const canChangeMemberRole = hasPermission(Permissions.CHANGE_MEMBER_ROLE);
   //const isPending = false;
 
@@ -81,7 +82,10 @@ const AllMembers = () => {
         const initials = getAvatarFallbackText(name);
         const avatarColor = getAvatarColor(name);
         return (
-          <div className="flex items-center justify-between space-x-4">
+          <div
+            key={member?._id}
+            className="flex items-center justify-between space-x-4"
+          >
             <div className="flex items-center space-x-4">
               <Avatar className="h-8 w-8">
                 <AvatarImage
@@ -145,10 +149,17 @@ const AllMembers = () => {
                                     >
                                       <p>{role.name?.toLowerCase()}</p>
                                       <p className="text-sm text-muted-foreground">
+                                        {role.name === "ADMIN" &&
+                                          `Can view, create, edit tasks, project and manage settings .`}
+
+                                        {role.name === "MEMBER" &&
+                                          `Can view,edit only task created by.`}
+                                      </p>
+                                      {/* <p className="text-sm text-muted-foreground">
                                         {role.name === "MEMBER"
                                           ? "Can view, edit only task created by."
                                           : "Can view, create, edit tasks, project and manage settings."}
-                                      </p>
+                                      </p> */}
                                     </CommandItem>
                                   )
                               )}
