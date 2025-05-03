@@ -19,9 +19,17 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { createProjectMutationFn } from "@/lib/api";
+import useWorkspaceId from "@/hooks/use-workspace-id";
+import { toast } from "@/hooks/use-toast";
+import useCreateProjectDialog from "@/hooks/use-create-project-dialog";
+import { Loader } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function CreateProjectForm() {
   const [emoji, setEmoji] = useState("📊");
+  const { onClose } = useCreateProjectDialog();
 
   const formSchema = z.object({
     name: z.string().trim().min(1, {
@@ -42,8 +50,45 @@ export default function CreateProjectForm() {
     setEmoji(emoji);
   };
 
+  const workspaceId = useWorkspaceId();
+  const navigate = useNavigate();
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: createProjectMutationFn,
+  });
+
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
+    // console.log(values);
+    if (isPending) return;
+    const payload = {
+      workspaceId,
+      data: {
+        name: values.name,
+        description: values.description,
+        emoji: emoji,
+      },
+    };
+    mutate(payload, {
+      onSuccess: (data) => {
+        toast({
+          title: "Project Created",
+          description: data.message,
+          variant: "success",
+        });
+        form.reset();
+        onClose();
+        const project = data.project;
+        navigate(`/workspace/${workspaceId}/project/${project._id}`);
+      },
+      onError: (error) => {
+        console.log(error);
+        toast({
+          title: "Error creating project",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   return (
@@ -127,10 +172,12 @@ export default function CreateProjectForm() {
             </div>
 
             <Button
+              disabled={isPending}
               className="flex place-self-end  h-[40px] text-white font-semibold"
               type="submit"
             >
               Create
+              {isPending && <Loader className="ml-2 animate-spin" />}
             </Button>
           </form>
         </Form>
