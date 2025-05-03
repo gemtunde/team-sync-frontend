@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createProjectMutationFn } from "@/lib/api";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import { toast } from "@/hooks/use-toast";
@@ -52,6 +52,7 @@ export default function CreateProjectForm() {
 
   const workspaceId = useWorkspaceId();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { mutate, isPending } = useMutation({
     mutationFn: createProjectMutationFn,
@@ -77,6 +78,9 @@ export default function CreateProjectForm() {
         });
         form.reset();
         onClose();
+        queryClient.invalidateQueries({
+          queryKey: ["allProjects", workspaceId],
+        });
         const project = data.project;
         navigate(`/workspace/${workspaceId}/project/${project._id}`);
       },
