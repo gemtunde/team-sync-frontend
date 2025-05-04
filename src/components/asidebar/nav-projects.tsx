@@ -74,6 +74,7 @@ export function NavProjects() {
   });
   const handleConfirm = () => {
     if (isLoading) return;
+    if (!context) return;
     const payload = {
       workspaceId,
       projectId: context?._id as string,

@@ -52,6 +52,16 @@ export type WorkspaceType = {
   inviteCode: string;
 };
 
+export type MemberType = {
+  _id: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+    profilePicture: string | null;
+  };
+};
+
 export type CreateWorkspaceType = {
   name: string;
   description: string;

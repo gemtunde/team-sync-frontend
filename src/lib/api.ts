@@ -3,10 +3,13 @@ import {
   AllMembersInWorkspaceResponseType,
   AllProjectPayloadType,
   AllProjectResponseType,
+  AllTaskPayloadType,
+  AllTaskResponseType,
   AllWorkspaceResponseType,
   AnalyticsResponseType,
   ChangeWorkspaceMemberRoleType,
   CreateProjectPayloadType,
+  CreateTaskPayloadType,
   CreateWorkspaceResponseType,
   CreateWorkspaceType,
   CurrentUserResponseType,
@@ -190,8 +193,59 @@ export const deleteProjectMutationFn = async ({
 //*******TASKS ********************************
 //************************* */
 
-export const createTaskMutationFn = async () => {};
+export const createTaskMutationFn = async ({
+  workspaceId,
+  projectId,
+  data,
+}: CreateTaskPayloadType) => {
+  const response = await API.post(
+    `/task/project/${projectId}/workspace/${workspaceId}/create`,
+    data
+  );
+  return response.data;
+};
 
-export const getAllTasksQueryFn = async () => {};
+export const getAllTasksQueryFn = async ({
+  workspaceId,
+  projectId,
+  assignedTo,
+  keyword,
+  status,
+  priority,
+  dueDate,
+  pageSize = 10,
+  pageNumber = 1,
+}: AllTaskPayloadType): Promise<AllTaskResponseType> => {
+  const baseUrl = `/task/workspace/${workspaceId}/all`;
+  const queryParams = new URLSearchParams();
+  if (projectId) {
+    queryParams.append("projectId", projectId);
+  }
+  if (assignedTo) {
+    queryParams.append("assignedTo", assignedTo);
+  }
+  if (status) {
+    queryParams.append("status", status);
+  }
+  if (keyword) {
+    queryParams.append("keyword", keyword);
+  }
+  if (priority) {
+    queryParams.append("priority", priority);
+  }
+  if (dueDate) {
+    queryParams.append("dueDate", dueDate);
+  }
+  if (pageSize) {
+    queryParams.append("pageSize", pageSize.toString());
+  }
+  if (pageNumber) {
+    queryParams.append("pageNumber", pageNumber.toString());
+  }
+  const url = queryParams.toString() ? `${baseUrl}?${queryParams}` : baseUrl;
+
+  const response = await API.get(url);
+  return response.data;
+};
 
 export const deleteTaskMutationFn = async () => {};

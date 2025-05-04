@@ -28,9 +28,21 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "../../ui/textarea";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
-import { transformOptions } from "@/lib/helper";
+import {
+  getAvatarColor,
+  getAvatarFallbackText,
+  transformOptions,
+} from "@/lib/helper";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import { TaskPriorityEnum, TaskStatusEnum } from "@/constant";
+import useGetProjectsInWorkspaceQuery from "@/hooks/api/use-get-projects";
+import { MemberType, ProjectType } from "@/types/api.type";
+import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
+//import { Avatar, AvatarFallback, AvatarImage } from "@radix-ui/react-avatar";
+import { createTaskMutationFn } from "@/lib/api";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function CreateTaskForm(props: {
   projectId?: string;
@@ -39,13 +51,60 @@ export default function CreateTaskForm(props: {
   const { projectId, onClose } = props;
 
   const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
 
-  const isLoading = false;
+  const { data, isLoading } = useGetProjectsInWorkspaceQuery({
+    workspaceId: workspaceId,
+    skip: !!projectId,
+  });
+
+  const { data: memberData, isLoading: isLoadingMember } =
+    useGetWorkspaceMembers(workspaceId);
+
+  const projects = data?.projects || [];
+  const members = memberData?.members || [];
+
+  //workspace projects
+  const projectOptions = projects?.map((project: ProjectType) => {
+    return {
+      label: (
+        <div className="flex items-center space-x-2">
+          <span>{project.emoji}</span>
+          <span>{project.name}</span>
+        </div>
+      ),
+      value: project._id,
+    };
+  });
+  // workspace members
+  const memberOptions = members?.map((member: MemberType) => {
+    const name = member.userId?.name || "Unknown";
+    const initials = getAvatarFallbackText(name);
+    const avatarColor = getAvatarColor(name);
+
+    return {
+      label: (
+        <div className="flex items-center space-x-2">
+          <Avatar className="w-6 h-6">
+            <AvatarImage src={member.userId?.profilePicture || ""} alt={name} />
+            <AvatarFallback className={avatarColor}>
+              {" "}
+              {initials}{" "}
+            </AvatarFallback>
+          </Avatar>
+          <span>{name}</span>
+        </div>
+      ),
+      value: member.userId._id,
+    };
+  });
+
+  //const membersOptions = []
+  //const isLoading = false;
 
   //const projectOptions = []
 
   // Workspace Memebers
-  //const membersOptions = []
 
   const formSchema = z.object({
     title: z.string().trim().min(1, {
@@ -90,9 +149,51 @@ export default function CreateTaskForm(props: {
   const statusOptions = transformOptions(taskStatusList);
   const priorityOptions = transformOptions(taskPriorityList);
 
+  //mutate
+  const { mutate: createTaskMutate, isPending: isPendingCreateTask } =
+    useMutation({
+      mutationFn: createTaskMutationFn,
+    });
   const onSubmit = (values: z.infer<typeof formSchema>) => {
+    if (isPendingCreateTask) return;
+    const payload = {
+      workspaceId,
+      projectId: values.projectId,
+      data: {
+        title: values.title,
+        description: values.description,
+        projectId: values.projectId,
+        status: values.status,
+        priority: values.priority,
+        assignedTo: values.assignedTo,
+        dueDate: values.dueDate.toISOString(),
+      },
+    };
+    createTaskMutate(payload, {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({
+          queryKey: ["project-analytics", projectId],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["allTasks"],
+        });
+        toast({
+          title: "Task created successfully",
+          description: data.message,
+          variant: "success",
+        });
+        onClose();
+      },
+      onError: (error) => {
+        console.error("Error creating task:", error);
+        toast({
+          title: "Error creating task",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
     console.log(values, { workspaceId: workspaceId });
-    onClose();
   };
 
   return (
@@ -180,15 +281,22 @@ export default function CreateTaskForm(props: {
                               <Loader className="w-4 h-4 place-self-center flex animate-spin" />
                             </div>
                           )}
-                          <SelectItem value="m@example.com">
-                            m@example.com
-                          </SelectItem>
-                          <SelectItem value="m@google.com">
-                            m@google.com
-                          </SelectItem>
-                          <SelectItem value="m@support.com">
-                            m@support.com
-                          </SelectItem>
+                          <div
+                            className="w-full max-h-[200px]
+                          overflow-y-auto scrollbar "
+                          >
+                            {projectOptions?.map(
+                              (option: { value: string; label: string }) => (
+                                <SelectItem
+                                  key={option.value}
+                                  value={option.value}
+                                  className="!capitalize cursor-pointer"
+                                >
+                                  {option.label}
+                                </SelectItem>
+                              )
+                            )}
+                          </div>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -217,15 +325,24 @@ export default function CreateTaskForm(props: {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="m@example.com">
-                          m@example.com
-                        </SelectItem>
-                        <SelectItem value="m@google.com">
-                          m@google.com
-                        </SelectItem>
-                        <SelectItem value="m@support.com">
-                          m@support.com
-                        </SelectItem>
+                        <div
+                          className="w-full max-h-[200px]
+                          overflow-y-auto scrollbar "
+                        >
+                          {isLoadingMember ? (
+                            <Loader className="w-4 h-4 place-self-center flex animate-spin" />
+                          ) : (
+                            memberOptions?.map((option) => (
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                                className="!capitalize cursor-pointer"
+                              >
+                                {option.label}
+                              </SelectItem>
+                            ))
+                          )}
+                        </div>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -359,11 +476,12 @@ export default function CreateTaskForm(props: {
             </div>
 
             <Button
+              disabled={isPendingCreateTask}
               className="flex place-self-end  h-[40px] text-white font-semibold"
               type="submit"
             >
-              <Loader className="animate-spin" />
               Create
+              {isPendingCreateTask && <Loader className="animate-spin" />}
             </Button>
           </form>
         </Form>
