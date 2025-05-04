@@ -10,9 +10,11 @@ import {
   CreateWorkspaceResponseType,
   CreateWorkspaceType,
   CurrentUserResponseType,
+  EditProjectPayloadType,
   EditWorkspaceType,
   LoginResponseType,
   loginType,
+  ProjectByIdPayloadType,
   ProjectResponseType,
   registerType,
   WorkspaceByIdResponseType,
@@ -130,7 +132,17 @@ export const createProjectMutationFn = async ({
   return response.data;
 };
 
-export const editProjectMutationFn = async () => {};
+export const editProjectMutationFn = async ({
+  workspaceId,
+  projectId,
+  data,
+}: EditProjectPayloadType): Promise<ProjectResponseType> => {
+  const response = await API.put(
+    `/project/${projectId}/workspace/${workspaceId}/update`,
+    data
+  );
+  return response.data;
+};
 
 export const getProjectsInWorkspaceQueryFn = async ({
   workspaceId,
@@ -143,9 +155,25 @@ export const getProjectsInWorkspaceQueryFn = async ({
   return response.data;
 };
 
-export const getProjectByIdQueryFn = async () => {};
+export const getProjectByIdQueryFn = async ({
+  workspaceId,
+  projectId,
+}: ProjectByIdPayloadType): Promise<ProjectResponseType> => {
+  const response = await API.get(
+    `/project/${projectId}/workspace/${workspaceId}`
+  );
+  return response.data;
+};
 
-export const getProjectAnalyticsQueryFn = async () => {};
+export const getProjectAnalyticsQueryFn = async ({
+  workspaceId,
+  projectId,
+}: ProjectByIdPayloadType): Promise<AnalyticsResponseType> => {
+  const response = await API.get(
+    `/project/${projectId}/workspace/${workspaceId}/analytics`
+  );
+  return response.data;
+};
 
 export const deleteProjectMutationFn = async () => {};
 

@@ -20,14 +20,20 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "../../ui/textarea";
 import EmojiPickerComponent from "@/components/emoji-picker";
 import { ProjectType } from "@/types/api.type";
+import useWorkspaceId from "@/hooks/use-workspace-id";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { editProjectMutationFn } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { Loader } from "lucide-react";
 
 export default function EditProjectForm(props: {
   project?: ProjectType;
   onClose: () => void;
 }) {
   const { onClose } = props;
-
-  const [emoji, setEmoji] = useState("📊");
+  const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
+  const [emoji, setEmoji] = useState(props.project?.emoji || "📊");
 
   const formSchema = z.object({
     name: z.string().trim().min(1, {
@@ -39,9 +45,13 @@ export default function EditProjectForm(props: {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      description: "",
+      name: props.project?.name || "",
+      description: props.project?.description || "",
     },
+  });
+
+  const { mutate, isPending } = useMutation({
+    mutationFn: editProjectMutationFn,
   });
 
   const handleEmojiSelection = (emoji: string) => {
@@ -49,8 +59,44 @@ export default function EditProjectForm(props: {
   };
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-    onClose();
+    // console.log(values);
+    if (isPending) return;
+    const payload = {
+      workspaceId: workspaceId,
+      projectId: props.project?._id as string,
+      data: {
+        name: values.name,
+        description: values.description,
+        emoji: emoji,
+      },
+    };
+    mutate(payload, {
+      onSuccess: (data) => {
+        toast({
+          title: "Project updated",
+          description: data.message,
+          duration: 2000,
+          variant: "success",
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["singleProject", props.project?._id],
+        });
+        queryClient.invalidateQueries({
+          queryKey: ["allProjects", workspaceId],
+        });
+        setTimeout(() => onClose(), 2000);
+      },
+      onError: (error) => {
+        console.log(error);
+        onClose();
+        toast({
+          title: "Error",
+          description: error.message,
+          duration: 2000,
+          variant: "destructive",
+        });
+      },
+    });
   };
 
   return (
@@ -130,10 +176,12 @@ export default function EditProjectForm(props: {
             </div>
 
             <Button
+              disabled={isPending}
               className="flex place-self-end  h-[40px] text-white font-semibold"
               type="submit"
             >
-              Create
+              Update
+              {isPending && <Loader className="w-4 h-4 ml-2 animate-spin" />}
             </Button>
           </form>
         </Form>
