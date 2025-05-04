@@ -35,12 +35,16 @@ import { Permissions } from "@/constant";
 import { useState } from "react";
 import useGetProjectsInWorkspaceQuery from "@/hooks/api/use-get-projects";
 import { PaginationType, ProjectType } from "@/types/api.type";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { deleteProjectMutationFn } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
 export function NavProjects() {
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
   const workspaceId = useWorkspaceId();
+  const queryClient = useQueryClient();
 
   const { onOpen } = useCreateProjectDialog();
   const { context, open, onOpenDialog, onCloseDialog } = useConfirmDialog();
@@ -48,27 +52,6 @@ export function NavProjects() {
 
   const [pageNumber] = useState(1);
   const [pageSize, setPageSize] = useState(5);
-
-  // const projects = [
-  //   {
-  //     id: "pro-383dh",
-  //     name: "Design Engineering",
-  //     emoji: "📊",
-  //     url: `/workspace/${workspaceId}/project/:pro-383dh`,
-  //   },
-  //   {
-  //     id: "p383dh",
-  //     name: "Sales & Marketing",
-  //     emoji: "📈",
-  //     url: `/workspace/${workspaceId}/project/:p383dh`,
-  //   },
-  //   {
-  //     id: "pro-wwhe",
-  //     name: "Travel",
-  //     emoji: "✈️",
-  //     url: `/workspace/${workspaceId}/project/:pro-wwhe`,
-  //   },
-  // ];
 
   const { data, isPending, isFetching, isError } =
     useGetProjectsInWorkspaceQuery({
@@ -85,7 +68,39 @@ export function NavProjects() {
     if (!hasMore || isFetching) return;
     setPageSize((prev) => prev + 5);
   };
-  const handleConfirm = () => {};
+
+  const { mutate, isPending: isLoading } = useMutation({
+    mutationFn: deleteProjectMutationFn,
+  });
+  const handleConfirm = () => {
+    if (isLoading) return;
+    const payload = {
+      workspaceId,
+      projectId: context?._id as string,
+    };
+    mutate(payload, {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({
+          queryKey: ["allProjects", workspaceId],
+        });
+        toast({
+          title: "Project deleted",
+          description: data.message,
+          variant: "success",
+        });
+        navigate(`/workspace/${workspaceId}`);
+        setTimeout(() => onCloseDialog(), 300);
+      },
+      onError: (error) => {
+        console.error("Error deleting project:", error);
+        toast({
+          title: "Error deleting project",
+          description: error.message,
+          variant: "destructive",
+        });
+      },
+    });
+  };
   return (
     <>
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -160,7 +175,7 @@ export function NavProjects() {
                       >
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
-                          disabled={false}
+                          disabled={isLoading}
                           onClick={() => onOpenDialog(item)}
                         >
                           <Trash2 className="text-muted-foreground" />
@@ -191,7 +206,7 @@ export function NavProjects() {
 
       <ConfirmDialog
         isOpen={open}
-        isLoading={false}
+        isLoading={isLoading}
         onClose={onCloseDialog}
         onConfirm={handleConfirm}
         title="Delete Project"
