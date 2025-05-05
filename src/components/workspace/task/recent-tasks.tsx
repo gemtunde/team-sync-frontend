@@ -6,124 +6,151 @@ import {
   TaskStatusEnum,
   TaskStatusEnumType,
 } from "@/constant";
+import useWorkspaceId from "@/hooks/use-workspace-id";
+import { getAllTasksQueryFn } from "@/lib/api";
 import {
   getAvatarColor,
   getAvatarFallbackText,
   transformStatusEnum,
 } from "@/lib/helper";
+import { TaskType } from "@/types/api.type";
+import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { Loader } from "lucide-react";
 
-type TasksType = {
-  id: string;
-  title: string;
-  dueDate: string;
-  status: TaskStatusEnumType;
-  priority: TaskPriorityEnumType;
-  assigneeTo: string;
-};
+// type TasksType = {
+//   id: string;
+//   title: string;
+//   dueDate: string;
+//   status: TaskStatusEnumType;
+//   priority: TaskPriorityEnumType;
+//   assigneeTo: string;
+// };
 
 const RecentTasks = () => {
   // Tasks data
-  const tasks: TasksType[] = [
-    {
-      id: "Task-001",
-      title: "Update marketing campaign assets",
-      dueDate: "January 5, 2025",
-      status: "IN_PROGRESS",
-      priority: "HIGH",
-      assigneeTo: "JD",
-    },
-    {
-      id: "Task-002",
-      title: "Prepare quarterly financial reports",
-      dueDate: "February 15, 2025",
-      status: "DONE",
-      priority: "MEDIUM",
-      assigneeTo: "AL",
-    },
-    {
-      id: "Task-003",
-      title: "Fix UI bugs in the dashboard",
-      dueDate: "March 10, 2025",
-      status: "TODO",
-      priority: "HIGH",
-      assigneeTo: "RK",
-    },
-    {
-      id: "Task-004",
-      title: "Draft proposal for new project",
-      dueDate: "April 22, 2025",
-      status: "IN_REVIEW",
-      priority: "LOW",
-      assigneeTo: "ML",
-    },
-    {
-      id: "Task-005",
-      title: "Conduct team performance reviews",
-      dueDate: "May 1, 2025",
-      status: "TODO",
-      priority: "HIGH",
-      assigneeTo: "SG",
-    },
-  ];
+  // const tasks: TasksType[] = [
+  //   {
+  //     id: "Task-001",
+  //     title: "Update marketing campaign assets",
+  //     dueDate: "January 5, 2025",
+  //     status: "IN_PROGRESS",
+  //     priority: "HIGH",
+  //     assigneeTo: "JD",
+  //   },
+  //   {
+  //     id: "Task-002",
+  //     title: "Prepare quarterly financial reports",
+  //     dueDate: "February 15, 2025",
+  //     status: "DONE",
+  //     priority: "MEDIUM",
+  //     assigneeTo: "AL",
+  //   },
+  //   {
+  //     id: "Task-003",
+  //     title: "Fix UI bugs in the dashboard",
+  //     dueDate: "March 10, 2025",
+  //     status: "TODO",
+  //     priority: "HIGH",
+  //     assigneeTo: "RK",
+  //   },
+  //   {
+  //     id: "Task-004",
+  //     title: "Draft proposal for new project",
+  //     dueDate: "April 22, 2025",
+  //     status: "IN_REVIEW",
+  //     priority: "LOW",
+  //     assigneeTo: "ML",
+  //   },
+  //   {
+  //     id: "Task-005",
+  //     title: "Conduct team performance reviews",
+  //     dueDate: "May 1, 2025",
+  //     status: "TODO",
+  //     priority: "HIGH",
+  //     assigneeTo: "SG",
+  //   },
+  // ];
+  const workspaceId = useWorkspaceId();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["all-tasks", workspaceId],
+    queryFn: () => getAllTasksQueryFn({ workspaceId }),
+    staleTime: 0,
+    enabled: !!workspaceId,
+  });
+  const tasks: TaskType[] = data?.tasks || [];
 
   // Scalable component
   return (
     <div className="flex flex-col space-y-6">
       <ul role="list" className="divide-y divide-gray-200">
-        {tasks.map((task) => {
-          const name = task?.assigneeTo || "";
-          const initials = getAvatarFallbackText(name);
-          const avatarColor = getAvatarColor(name);
-          return (
-            <li
-              key={task.id}
-              className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              {/* Task Info */}
-              <div className="flex flex-col space-y-1 flex-grow">
-                <span className="text-sm text-gray-600 font-medium">
-                  {task.id}
-                </span>
-                <p className="text-md font-semibold text-gray-800 truncate">
-                  {task.title}
-                </p>
-                <span className="text-sm text-gray-500">
-                  Due: {task.dueDate}
-                </span>
-              </div>
+        {isLoading ? (
+          <Loader className="animate-spin text-gray-500 place-self-center w-8 h-8" />
+        ) : null}
+        {tasks.length === 0 && !isLoading ? (
+          <p className="text-sm text-gray-500 place-self-center">
+            No recent tasks found.
+          </p>
+        ) : (
+          tasks.map((task) => {
+            const name = task?.assignedTo?.name || "";
+            const initials = getAvatarFallbackText(name);
+            const avatarColor = getAvatarColor(name);
+            return (
+              <li
+                key={task._id}
+                className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              >
+                {/* Task Info */}
+                <div className="flex flex-col space-y-1 flex-grow">
+                  <span className="text-sm capitalize text-gray-600 font-medium">
+                    {task.taskCode || "NA"}
+                  </span>
+                  <p className="text-md font-semibold text-gray-800 truncate">
+                    {task.title || "No title"}
+                  </p>
+                  <span className="text-sm text-gray-500">
+                    Due: {task.dueDate ? format(task.dueDate, "PPP") : null}
+                  </span>
+                </div>
 
-              {/* Task Status */}
-              <div className="text-sm font-medium ">
-                <Badge
-                  variant={TaskStatusEnum[task.status]}
-                  className="flex w-auto p-1 px-2 gap-1 font-medium shadow-sm uppercase border-0"
-                >
-                  <span>{transformStatusEnum(task.status)}</span>
-                </Badge>
-              </div>
+                {/* Task Status */}
+                <div className="text-sm font-medium ">
+                  <Badge
+                    variant={TaskStatusEnum[task.status]}
+                    className="flex w-auto p-1 px-2 gap-1 font-medium shadow-sm uppercase border-0"
+                  >
+                    <span>{transformStatusEnum(task.status)}</span>
+                  </Badge>
+                </div>
 
-              {/* Task Priority */}
-              <div className="text-sm ml-2">
-                <Badge
-                  variant={TaskPriorityEnum[task.priority]}
-                  className="flex w-auto p-1 px-2 gap-1 font-medium shadow-sm uppercase border-0"
-                >
-                  <span>{transformStatusEnum(task.priority)}</span>
-                </Badge>
-              </div>
+                {/* Task Priority */}
+                <div className="text-sm ml-2">
+                  <Badge
+                    variant={TaskPriorityEnum[task.priority]}
+                    className="flex w-auto p-1 px-2 gap-1 font-medium shadow-sm uppercase border-0"
+                  >
+                    <span>{transformStatusEnum(task.priority)}</span>
+                  </Badge>
+                </div>
 
-              {/* Assignee */}
-              <div className="flex items-center space-x-2 ml-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={""} alt={task.assigneeTo} />
-                  <AvatarFallback className={avatarColor}>
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
-            </li>
-          );
-        })}
+                {/* Assignee */}
+                <div className="flex items-center space-x-2 ml-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage
+                      src={task.assignedTo?.profilePicture || ""}
+                      alt={task.assignedTo?.name}
+                    />
+                    <AvatarFallback className={avatarColor}>
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              </li>
+            );
+          })
+        )}
       </ul>
     </div>
   );
